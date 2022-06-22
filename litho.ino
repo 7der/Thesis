@@ -4,6 +4,9 @@
 #include <WiFi.h>
 #include "link.h"
 
+#define SDA_2 33
+#define SCL_2 32
+
 #include <Wire.h>//gy906
 #include <Adafruit_MLX90614.h>//gy906
 String tempState = "Pending";
@@ -51,13 +54,14 @@ long lastBeat = 0; //Time at which the last beat occurred
 float beatsPerMinute;
 int beatAvg;
 String bpmWeb = "0";
-String irWeb = "0";
+String  irWeb= "0";
 
-//const char* ssid = "HUAWEI-2.4G-Y7Bv";//Aries' House
-//const char* password = "DxmwQ2w3";
-const char* ssid = "HUAWEI-CJ2v";//Der's House
-const char* password = "GE6z8NH5";
-const char *host = "192.168.18.21";
+const char* ssid = "HUAWEI-2.4G-Y7Bv";//Aries' House
+const char* password = "DxmwQ2w3";
+const char *host = "192.168.100.16";
+//const char* ssid = "HUAWEI-CJ2v";//Der's House
+//const char* password = "GE6z8NH5";
+//const char *host = "192.168.18.21";
 WiFiClient client;
 String header;//webserver
 
@@ -71,7 +75,8 @@ void setup()
 {
   Serial.begin(115200);
 
-
+  Wire.begin();
+  Wire1.begin(SDA_2, SCL_2);
 
 
   WiFi.mode(WIFI_STA);
@@ -107,10 +112,20 @@ void setup()
 
   //we start the module as a tag
   DW1000Ranging.startAsTag("7D:00:22  :EA:82:60:3B:9C", DW1000.MODE_LONGDATA_RANGE_LOWPOWER);
-  mlx.begin(0x5A);  //gy906
+
+  while (!Serial);
+
+
+  if (!mlx.begin(0x5A, &Wire1))
+  {  
+    Serial.println("Error connecting to MLX sensor. Check wiring.");
+    while (1);
+  };
+
   uwb_data = init_link();
-  // Initialize sensor
-  /*if (!particleSensor.begin(Wire, I2C_SPEED_FAST, 0x57)) //Use default I2C port, 400kHz speed
+  /*
+    // Initialize sensor
+    if (!particleSensor.begin(Wire, I2C_SPEED_FAST, 0x57)) //Use default I2C port, 400kHz speed
     {
     Serial.println("MAX30105 was not found. Please check wiring/power. ");
     while (1);
@@ -160,9 +175,9 @@ void loop()
   //Serial.print(beatAvg);
 
   //bpmWeb = String(beatsPerMinute);
-  //irWeb = String(irValue);
+  irWeb = String(irValue);
   //String bpmWeb = "0";
-  //String irWeb = "0";
+  String irWeb = "0";
   /*
     if (irValue < 50000)
       Serial.print(" No finger?");
@@ -173,7 +188,7 @@ void loop()
   */
 
   bpmWeb = String(beatsPerMinute);
-  irWeb = String(irValue);
+    irWeb = String(irValue);
   DW1000Ranging.loop();
   if ((millis() - runtime) > 1000)
   {
@@ -235,7 +250,7 @@ void loop()
 
 
               //Display data like from S monitor
-              client.println("<p>IR reading:" +  irWeb  + "</p>");
+              client.println("<p>IR reading:" + irWeb    + "</p>");
               client.println("<p>Patient's Temperature:  " +  tempState  + "</p>");
               client.println("<p>Patient's Arm movement:  " +  xAccelState + "G," + yAccelState + "G," + zAccelState + "G "  + "</p>");
               client.println("<p>bpm: " +  bpmWeb  + "</p>");
@@ -246,7 +261,7 @@ void loop()
               //Serial.print(", Avg BPM=");
               //Serial.print(beatAvg);
               //String bpmWeb = "0";
-              //String irWeb = "0";
+              //String  = "0";
 
               client.println("</body></html>");
 
@@ -333,8 +348,8 @@ void send_udp(String * msg_json)
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 void printSensors() {
 
-  //Serial.print("Ambient = "); Serial.print(.readAmbientTempC()); //gy906
-  Serial.print("*C\tObject = "); Serial.print(mlx.readObjectTempC() - 16.8); Serial.println("*C");
+  //gy906
+  Serial.print("Object = "); Serial.print(mlx.readObjectTempC() ); Serial.println("*C");
 
   //  Serial.print("Ambient = "); Serial.print(mlx.readAmbientTempF());
   // Serial.print("*F\tObject = "); Serial.print(mlx.readObjectTempF()); Serial.println("*F");
@@ -363,13 +378,13 @@ void printSensors() {
   xAccelState = String(xAccel4);
   yAccelState = String(yAccel4);
   zAccelState = String(zAccel4);
-  // Serial.print(xAccel, 0);
-  // Serial.print("G, ");
-  // Serial.print(yAccel, 0);
-  // Serial.print("G, ");
-  //  Serial.print(zAccel, 0);
-  // Serial.println("G");
-  // Serial. print('\n');
+  Serial.print(xAccel, 0);
+  Serial.print("G, ");
+  Serial.print(yAccel, 0);
+  Serial.print("G, ");
+  Serial.print(zAccel, 0);
+  Serial.println("G");
+  Serial. print('\n');
 
 
 
@@ -385,7 +400,7 @@ void printSensors() {
   //Serial.print(beatAvg);
 
   bpmWeb = String(beatsPerMinute);
-  irWeb = String(irValue);
+   = String(irValue);
   }*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 int ReadAxis(int axisPin)
@@ -399,3 +414,4 @@ int ReadAxis(int axisPin)
   }
   return reading / sampleSize;
 }
+
